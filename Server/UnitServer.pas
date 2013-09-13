@@ -51,9 +51,6 @@ var
   SBmpArray: TBmpArray;
   STileUpdateIndex: TTileUpdateIndex;
 
-
-
-
 implementation
 
 {$R *.dfm}
@@ -142,10 +139,6 @@ begin
     end;
 end;
 
-
-
-
-
 procedure TServerForm.FormCreate(Sender: TObject);
 begin
   Init;
@@ -159,15 +152,41 @@ end;
 procedure TServerForm.TimerScreenshotTimer(Sender: TObject);
 var
   TileUpdateIndex: TTileUpdateIndex;
+  i,j,size,count: integer;
+  CurrentTile: TBitmap;
+  CurrentStream: TMemoryStream;
+  buf: array of byte;
+
 begin
   ScreenShot;
-  UpdateBmpArray(TileUpdateIndex);
 
-  
+  // DEBUG
+  count:=0;
+  for i:=1 to TileCount do begin
+     if i in TileUpdateIndex then inc(count);
+  end;
+  Self.Caption:=IntToStr(count);
+  // ENDDEBUG
+
+  UpdateBmpArray(TileUpdateIndex);
+  for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
+  begin
+      for j:=1 to TileCount do begin
+          if j in TileUpdateIndex then begin
+              CurrentTile := SBmpArray[j];
+              CurrentStream:=TMemoryStream.Create;
+              CurrentTile.SaveToStream(CurrentStream);
+              CurrentStream.Seek(0, soFromBeginning);
+              size := CurrentStream.Size;
+              setlength(buf,size);
+              CurrentStream.ReadBuffer(buf[0],size);
+              ServerSocket.Socket.Connections[i].SendBuf(buf[0],length(buf));
+              CurrentStream.Free;
+          end;
+      end;
+  end;
 
   BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
          SBmp.Canvas.Handle, 0,0,SRCCOPY);
 end;
-
-
 end.
