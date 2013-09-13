@@ -21,8 +21,8 @@ type
     bmp: TBitmap;
     index: Cardinal;
   end;
-
-  TBmpArray = array [1..TileCount] of TBitmap;
+  TBuffer = array [0..65589]of byte;
+  TBmpArray = array [1..TileCount] of TBuffer;
 
   TTileUpdateIndex = set of 1..TileCount;
 
@@ -38,6 +38,9 @@ type
     procedure Finish;
     procedure ScreenShot;
     procedure UpdateBmpArray(var TileUpdateIndex: TTileUpdateIndex);
+    function GetBitmapBuffer(var bitmap: TBitmap):TBuffer;
+    procedure BufferAssign(var src:TBuffer; var dest:TBuffer);
+    function BufferEquals(var a:TBuffer; var b:TBuffer):boolean;
   public
     { Public declarations }
   end;
@@ -49,6 +52,7 @@ var
   SScreenDC: HDC;
   SCursorIcon: TIcon;
   SBmpArray: TBmpArray;
+  STileArray: TBmpArray;
   STileUpdateIndex: TTileUpdateIndex;
 
 implementation
@@ -60,9 +64,9 @@ var
   i: integer;
 begin
   SScreenDC:= CreateDC('DISPLAY', '',nil,nil);
-
-  for i:= 1 to TileCount do
-    SBmpArray[i]:= TBitmap.Create;
+  STileBmp := TBitmap.Create;
+  STileBmp.Width:= TileSize;
+  STileBmp.Height:= TileSize;
 
   SCursorIcon:= TIcon.Create;
 
@@ -70,10 +74,6 @@ begin
   SBmp.Width:= SunWidth;
   SBmp.Height:= SunHeight;
   SBmp.PixelFormat:= pf32bit;
-
-  STileBmp:= TBitmap.Create;
-  STileBmp.Width:= TileSize;
-  STileBmp.Height:= TileSize;
 
   TimerScreenshot.Enabled:= true;
 end;
@@ -89,9 +89,6 @@ begin
   SBmp.Free;
 
   SCursorIcon.Free;
-
-  for i:= 1 to TileCount do
-    SBmpArray[i].FreeImage;
 
   ReleaseDC(0, SScreenDC);
 end;
@@ -120,21 +117,51 @@ begin
         DeleteObject(IconInfo.hbmColor);
       end;
 end;
-
-
+function TServerForm.GetBitmapBuffer(var bitmap: TBitmap):TBuffer;
+var CurrentStream: TMemoryStream;
+  buf: TBuffer;
+  i,size: integer;
+begin
+  CurrentStream:=TMemoryStream.Create;
+  bitmap.SaveToStream(CurrentStream);
+  CurrentStream.Seek(0, soFromBeginning);
+  size := CurrentStream.Size;
+  CurrentStream.ReadBuffer(buf[0],size);
+  result:=buf;
+  CurrentStream.Free;
+end;
+function TServerForm.BufferEquals(var a:TBuffer; var b:TBuffer):boolean;
+var i:integer;
+begin
+  result:=true;
+    for i:=0 to 65589 do begin
+      if a[i]<>b[i] then begin
+        result:=false;
+        break;
+      end;
+    end;
+end;
+procedure TServerForm.BufferAssign(var src:TBuffer; var dest:TBuffer);
+var i:integer;
+begin
+    for i:=0 to 65589 do
+      dest[i]:=src[i];
+end;
 procedure TServerForm.UpdateBmpArray(var TileUpdateIndex: TTileUpdateIndex);
 var
   i, j: integer;
   TileIndex: integer;
+  Current, Buffered: TBuffer;
 begin
   for i:= 1 to TileCountLine do
     for j:= 1 to TileCountColumn do begin
+      TileIndex:= TileCountColumn*(i-1) + j;
       BitBlt(STileBmp.Canvas.Handle, 0,0, TileSize,TileSize,
              SBmp.Canvas.Handle, (j-1)*TileSize, (i-1)*TileSize, SRCCOPY);
-      TileIndex:= TileCountColumn*(i-1) + j;
-      if STileBmp <> SBmpArray[TileIndex] then begin
+      Current:=GetBitmapBuffer(STileBmp);
+      if not BufferEquals(Current,SBmpArray[TileIndex]) then begin
         TileUpdateIndex:= TileUpdateIndex + [TileIndex];
-        SBmpArray[TileIndex]:= STileBmp;
+        BufferAssign(Current,SBmpArray[TileIndex]);
       end;
     end;
 end;
@@ -153,13 +180,12 @@ procedure TServerForm.TimerScreenshotTimer(Sender: TObject);
 var
   TileUpdateIndex: TTileUpdateIndex;
   i,j,size,count: integer;
-  CurrentTile: TBitmap;
-  CurrentStream: TMemoryStream;
-  buf: array of byte;
+  buf: TBuffer;
 
 begin
   ScreenShot;
-
+  TileUpdateIndex:=[];
+  UpdateBmpArray(TileUpdateIndex);
   // DEBUG
   count:=0;
   for i:=1 to TileCount do begin
@@ -168,20 +194,12 @@ begin
   Self.Caption:=IntToStr(count);
   // ENDDEBUG
 
-  UpdateBmpArray(TileUpdateIndex);
+
   for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
   begin
       for j:=1 to TileCount do begin
           if j in TileUpdateIndex then begin
-              CurrentTile := SBmpArray[j];
-              CurrentStream:=TMemoryStream.Create;
-              CurrentTile.SaveToStream(CurrentStream);
-              CurrentStream.Seek(0, soFromBeginning);
-              size := CurrentStream.Size;
-              setlength(buf,size);
-              CurrentStream.ReadBuffer(buf[0],size);
-              ServerSocket.Socket.Connections[i].SendBuf(buf[0],length(buf));
-              CurrentStream.Free;
+              ServerSocket.Socket.Connections[i].SendBuf(SBmpArray[j][0],65589);
           end;
       end;
   end;
