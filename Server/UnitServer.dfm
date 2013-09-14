@@ -1,10 +1,10 @@
 object ServerForm: TServerForm
-  Left = 96
-  Top = 125
-  Width = 928
-  Height = 480
+  Left = 141
+  Top = 116
+  Width = 573
+  Height = 473
   Caption = 'ServerForm'
-  Color = clBtnFace
+  Color = clWhite
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -19,14 +19,12 @@ object ServerForm: TServerForm
     Enabled = False
     Interval = 10
     OnTimer = TimerScreenshotTimer
-    Left = 152
-    Top = 40
+    Left = 8
   end
   object ServerSocket: TServerSocket
     Active = True
     Port = 6889
     ServerType = stNonBlocking
-    Left = 208
-    Top = 40
+    Left = 64
   end
 end

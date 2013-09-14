@@ -22,9 +22,9 @@ type
     index: Cardinal;
   end;
 
-  TBmpArray = array [1..TileCount] of TBitmap;
+  TBmpArray = array [0..TileCount - 1] of TBitmap;
 
-  TTileUpdateIndex = set of 1..TileCount;
+  TTileUpdateIndex = set of 0..TileCount - 1;
 
 type
   TServerForm = class(TForm)
@@ -38,6 +38,7 @@ type
     procedure Finish;
     procedure ScreenShot;
     procedure UpdateBmpArray(var TileUpdateIndex: TTileUpdateIndex);
+    function EqualsBitmap(index: integer): boolean;
   public
     { Public declarations }
   end;
@@ -61,8 +62,13 @@ var
 begin
   SScreenDC:= CreateDC('DISPLAY', '',nil,nil);
 
-  for i:= 1 to TileCount do
+  for i:= 0 to TileCount - 1 do begin
     SBmpArray[i]:= TBitmap.Create;
+    SBmpArray[i].PixelFormat:= pf32bit;
+    SBmpArray[i].Width:= TileSize;
+    SBmpArray[i].Height:= TileSize;
+    SBmpArray[i].Canvas.FillRect(Rect(0, 0, TileSize - 1, TileSize - 1));
+  end;
 
   SCursorIcon:= TIcon.Create;
 
@@ -90,7 +96,7 @@ begin
 
   SCursorIcon.Free;
 
-  for i:= 1 to TileCount do
+  for i:= 0 to TileCount - 1 do
     SBmpArray[i].FreeImage;
 
   ReleaseDC(0, SScreenDC);
@@ -121,22 +127,40 @@ begin
       end;
 end;
 
+function TServerForm.EqualsBitmap(index: integer): boolean;
+var
+  i,j: integer;
+  PT, PB : PIntegerArray;
+  Line, Col: integer;
+begin
+  Result:= false;
+  Line:=  (index div TileCountColumn) * TileSize;
+  Col:=   (index mod TileCountColumn) * TileSize;
+  for i:= 0 to TileSize - 1 do begin
+    PT:= SBmpArray[index].ScanLine[i];
+    PB:= SBmp.ScanLine[Line + i];
+    for j:= 0 to TileSize - 1 do
+      if PT^[j] <> PB^[Col + j] then Exit;
+  end;
+  Result:= true;
+end;
 
 procedure TServerForm.UpdateBmpArray(var TileUpdateIndex: TTileUpdateIndex);
 var
-  i, j: integer;
-  TileIndex: integer;
+  i: integer;
 begin
-  for i:= 1 to TileCountLine do
-    for j:= 1 to TileCountColumn do begin
-      BitBlt(STileBmp.Canvas.Handle, 0,0, TileSize,TileSize,
-             SBmp.Canvas.Handle, (j-1)*TileSize, (i-1)*TileSize, SRCCOPY);
-      TileIndex:= TileCountColumn*(i-1) + j;
-      if STileBmp <> SBmpArray[TileIndex] then begin
-        TileUpdateIndex:= TileUpdateIndex + [TileIndex];
-        SBmpArray[TileIndex]:= STileBmp;
-      end;
+  TileUpdateIndex:= [];
+
+  for i:= 0 to TileCount - 1 do begin
+    if not EqualsBitmap(i) then begin
+      BitBlt(SBmpArray[i].Canvas.Handle, 0,0, TileSize,TileSize,
+             SBmp.Canvas.Handle,
+             (i mod TileCountColumn) * TileSize,
+             (i div TileCountColumn) * TileSize,
+             SRCCOPY);
+      TileUpdateIndex:= TileUpdateIndex + [i];
     end;
+  end;
 end;
 
 procedure TServerForm.FormCreate(Sender: TObject);
@@ -159,17 +183,19 @@ var
 
 begin
   ScreenShot;
+  UpdateBmpArray(TileUpdateIndex);
 
   // DEBUG
   count:=0;
-  for i:=1 to TileCount do begin
-     if i in TileUpdateIndex then inc(count);
+  Self.Caption:='';
+  for i:=0 to TileCount - 1 do begin
+     if i in TileUpdateIndex then //inc(count);
+     Self.Caption:= Self.Caption + IntToStr(i) + ' ';
   end;
-  Self.Caption:=IntToStr(count);
+  //Self.Caption:=IntToStr(count);
   // ENDDEBUG
 
-  UpdateBmpArray(TileUpdateIndex);
-  for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
+  {for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
   begin
       for j:=1 to TileCount do begin
           if j in TileUpdateIndex then begin
@@ -184,9 +210,12 @@ begin
               CurrentStream.Free;
           end;
       end;
-  end;
+  end;}
 
-  BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
-         SBmp.Canvas.Handle, 0,0,SRCCOPY);
+  //BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
+  //       SBmp.Canvas.Handle, 0,0,SRCCOPY);
 end;
+
+
+
 end.
