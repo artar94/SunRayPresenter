@@ -176,41 +176,34 @@ end;
 procedure TServerForm.TimerScreenshotTimer(Sender: TObject);
 var
   TileUpdateIndex: TTileUpdateIndex;
-  i,j,size,count: integer;
-  CurrentTile: TBitmap;
+  i,j: integer;
+  Size: integer;
   CurrentStream: TMemoryStream;
   buf: array of byte;
-
 begin
   ScreenShot;
   UpdateBmpArray(TileUpdateIndex);
 
   // DEBUG
-  count:=0;
   Self.Caption:='';
   for i:=0 to TileCount - 1 do begin
-     if i in TileUpdateIndex then //inc(count);
-     Self.Caption:= Self.Caption + IntToStr(i) + ' ';
+     if i in TileUpdateIndex then
+      Self.Caption:= Self.Caption + IntToStr(i) + ' ';
   end;
-  //Self.Caption:=IntToStr(count);
   // ENDDEBUG
 
-  {for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
-  begin
-      for j:=1 to TileCount do begin
-          if j in TileUpdateIndex then begin
-              CurrentTile := SBmpArray[j];
-              CurrentStream:=TMemoryStream.Create;
-              CurrentTile.SaveToStream(CurrentStream);
-              CurrentStream.Seek(0, soFromBeginning);
-              size := CurrentStream.Size;
-              setlength(buf,size);
-              CurrentStream.ReadBuffer(buf[0],size);
-              ServerSocket.Socket.Connections[i].SendBuf(buf[0],length(buf));
-              CurrentStream.Free;
-          end;
+  for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
+    for j:=0 to TileCount - 1 do
+      if j in TileUpdateIndex then begin
+        CurrentStream:= TMemoryStream.Create;
+        SBmpArray[j].SaveToStream(CurrentStream);
+        CurrentStream.Seek(0, soFromBeginning);
+        Size := CurrentStream.Size;
+        SetLength(buf,Size);
+        CurrentStream.ReadBuffer(buf[0],Size);
+        ServerSocket.Socket.Connections[i].SendBuf(buf[0],Length(buf));
+        CurrentStream.Free;
       end;
-  end;}
 
   //BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
   //       SBmp.Canvas.Handle, 0,0,SRCCOPY);
