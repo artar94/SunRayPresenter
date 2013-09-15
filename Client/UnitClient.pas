@@ -30,6 +30,23 @@ type
     { Public declarations }
   end;
 
+  TPacket = array[0..65535] of byte;
+
+
+  TElem = record
+    Packet: TPacket;
+    Index : Byte;
+  end;
+  PNode = ^Node; // ??? ????????? ?? ??????? ???????
+  Node = record  // ??????? ???????
+    Elem : TElem;
+    next : PNode;
+  end;
+
+  TQueue = record // ???????
+    first:  PNode;
+    last:   PNode;
+  end;
 var
   ClientForm: TClientForm;
 
@@ -39,9 +56,64 @@ var
 
   count: Int64;
 
+  PacketList: TList;
+
+  buf: TPacket;
+
+  ptr: integer;
+
+  Q: TQueue;
 implementation
 
 {$R *.dfm}
+
+procedure QueueInit(var Q: TQueue); // ????????????? ???????
+begin
+  Q.first:= nil;
+  Q.last:=  nil;
+end;
+
+function QueueIsEmpty(const Q: TQueue):boolean; // ???????? ??????? ?? ???????
+begin
+  Result:= (Q.first = nil) and (Q.last = nil);
+end;
+
+function QueuePop(var Q: TQueue):TElem; // ????????? ???????? ?? ???????
+var
+  d:PNode;
+begin
+  Result:= Q.first^.Elem;
+  if Q.first <> Q.last then begin
+    d:= Q.first;
+    Q.first:= Q.first^.next;
+    Dispose(d);
+  end else begin
+    Dispose(Q.first);
+    Q.first:= nil;
+    Q.last:=  nil;
+  end;
+end;
+
+procedure QueueClean(var Q: TQueue); // ??????? ???????
+begin
+  while not QueueIsEmpty(Q) do
+    QueuePop(Q);
+end;
+
+procedure QueuePush(var Q: TQueue; E:TElem); // ????????? ???????? ? ???????
+var
+  x:PNode;
+begin
+  New(x);
+  x^.Elem:= E;
+  if QueueIsEmpty(Q) then begin
+    Q.first:= x;
+    Q.last:=  x;
+  end else begin
+    Q.last^.next:=  x;
+    Q.last:=        x;
+  end;
+end;
 
 procedure TClientForm.Init;
 begin
@@ -56,26 +128,50 @@ begin
   CTileBmp.PixelFormat:= pf24bit;
 
   count:= 0;
+
+  PacketList := TList.Create;
+  ptr:=0;
+  QueueInit(Q);
 end;
 
 procedure TClientForm.ClientSocketRead(Sender: TObject;
   Socket: TCustomWinSocket);
 var
-  buf: array[0..65535] of byte;
+  size: integer;
   index:byte;
+  cur: TElem;
 begin
-  Sleep(10);
   CurrentStream.Clear;
   CurrentStream.Seek(0, soFromBeginning);
+  size:=Socket.ReceiveLength;
   //Memo1.Lines.Add(IntToStr(Socket.ReceiveLength));
-  Socket. ReceiveBuf(buf[0], Socket.ReceiveLength);
-  CurrentStream.WriteBuffer(buf[0], 49206);
-  index:=buf[49206];
+  if ptr+size>65536 then begin
+      Socket.ReceiveBuf(buf[ptr],65536-ptr);
+      cur.Index:=buf[49206];
+      cur.Packet:=buf;
+      QueuePush(q,cur);
+      ptr:=0;
+      size:=Socket.ReceiveLength;
+      Socket.ReceiveBuf(buf[ptr],size);
+  end
+  else begin
+      Socket.ReceiveBuf(buf[ptr],size);
+      ptr := ptr+size;
+      if ptr=65536 then begin
+          cur.Index:=buf[49206];
+          cur.Packet:=buf;
+          QueuePush(q,cur);
+          ptr:=0;
+      end;
+  end;
 
-  CurrentStream.Seek(0, soFromBeginning);
-  CTileBmp.LoadFromStream(CurrentStream);
+  //CurrentStream.WriteBuffer(buf[0], 49206);
 
-  Paint(index);
+
+  //CurrentStream.Seek(0, soFromBeginning);
+  //CTileBmp.LoadFromStream(CurrentStream);
+
+  //Paint(index);
 end;
 
 procedure TClientForm.FormCreate(Sender: TObject);

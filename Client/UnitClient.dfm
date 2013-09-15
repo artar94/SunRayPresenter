@@ -19,7 +19,7 @@ object ClientForm: TClientForm
   PixelsPerInch = 96
   TextHeight = 13
   object ClientSocket: TClientSocket
-    Active = False
+    Active = True
     Address = '127.0.0.1'
     ClientType = ctNonBlocking
     Host = '127.0.0.1'

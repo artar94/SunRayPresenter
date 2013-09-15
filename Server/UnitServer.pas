@@ -219,9 +219,9 @@ begin
         ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536);
         CurrentStream.Free;
         inc(count);
-        if count=8 then Exit;
+        //if count=8 then Exit;
       end;
-    Sleep(10);
+
     end;
   end;
   //BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
