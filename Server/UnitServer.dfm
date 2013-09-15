@@ -1,6 +1,6 @@
 object ServerForm: TServerForm
-  Left = 190
-  Top = 123
+  Left = 141
+  Top = 116
   Width = 573
   Height = 473
   Caption = 'ServerForm'
@@ -17,7 +17,7 @@ object ServerForm: TServerForm
   TextHeight = 13
   object TimerScreenshot: TTimer
     Enabled = False
-    Interval = 100
+    Interval = 10
     OnTimer = TimerScreenshotTimer
     Left = 8
   end

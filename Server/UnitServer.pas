@@ -186,10 +186,11 @@ end;
 procedure TServerForm.TimerScreenshotTimer(Sender: TObject);
 var
   TileUpdateIndex: TTileUpdateIndex;
-  i,j: integer;
+  i: integer;
+  j: byte;
   Size: integer;
   CurrentStream: TMemoryStream;
-  buf: array of byte;
+  buf: array [0..65535] of byte;
 begin
   ScreenShot;
   UpdateBmpArray(TileUpdateIndex);
@@ -209,9 +210,9 @@ begin
         SBmpArray[j].SaveToStream(CurrentStream);
         CurrentStream.Seek(0, soFromBeginning);
         Size := CurrentStream.Size;
-        SetLength(buf,Size);
         CurrentStream.ReadBuffer(buf[0],Size);
-        ServerSocket.Socket.Connections[i].SendBuf(buf[0],Length(buf));
+        buf[49206]:=j;
+        ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536);
         CurrentStream.Free;
       end;
 
