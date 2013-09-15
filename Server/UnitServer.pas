@@ -56,7 +56,7 @@ var
   SScreenDC: HDC;
   SCursorIcon: TIcon;
   SBmpArray: TBmpArray;
-  STileUpdateIndex: TTileUpdateIndex;
+  TileUpdateIndex: TTileUpdateIndex;
 
 implementation
 
@@ -67,7 +67,7 @@ var
   i: integer;
 begin
   SScreenDC:= CreateDC('DISPLAY', '',nil,nil);
-
+  TileUpdateIndex:=[];
   for i:= 0 to TileCount - 1 do begin
     SBmpArray[i]:= TBitmap.Create;
     SBmpArray[i].PixelFormat:= pf24bit;
@@ -159,7 +159,7 @@ procedure TServerForm.UpdateBmpArray(var TileUpdateIndex: TTileUpdateIndex);
 var
   i: integer;
 begin
-  TileUpdateIndex:= [];
+  
 
   for i:= 0 to TileCount - 1 do begin
     if not EqualsBitmap(i) then begin
@@ -185,9 +185,9 @@ end;
 
 procedure TServerForm.TimerScreenshotTimer(Sender: TObject);
 var
-  TileUpdateIndex: TTileUpdateIndex;
   i: integer;
   j: byte;
+  count:integer;
   Size: integer;
   CurrentStream: TMemoryStream;
   buf: array [0..65535] of byte;
@@ -202,10 +202,13 @@ begin
       Self.Caption:= Self.Caption + IntToStr(i) + ' ';
   end;
   // ENDDEBUG
+  count:=0;
+  if ServerSocket.Socket.ActiveConnections>0 then
+  for j:=0 to TileCount - 1 do begin
+    if j in TileUpdateIndex then begin
 
-  for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
-    for j:=0 to TileCount - 1 do
-      if j in TileUpdateIndex then begin
+      for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do begin
+        TileUpdateIndex:=TileUpdateIndex-[j];
         ZeroMemory(@buf, 65536);
         CurrentStream:= TMemoryStream.Create;
         SBmpArray[j].SaveToStream(CurrentStream);
@@ -215,9 +218,12 @@ begin
         buf[49206]:=j;
         ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536);
         CurrentStream.Free;
-        Sleep(10);
+        inc(count);
+        if count=8 then Exit;
       end;
-
+    Sleep(10);
+    end;
+  end;
   //BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
   //       SBmp.Canvas.Handle, 0,0,SRCCOPY);
 end;
