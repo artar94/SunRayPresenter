@@ -2,12 +2,12 @@ program SRPClient;
 
 uses
   Forms,
-  UnitClient in 'UnitClient.pas' {Form1};
+  UnitClient in 'UnitClient.pas' {ClientForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TClientForm, ClientForm);
   Application.Run;
 end.

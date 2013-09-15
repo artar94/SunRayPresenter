@@ -17,7 +17,7 @@ object ServerForm: TServerForm
   TextHeight = 13
   object TimerScreenshot: TTimer
     Enabled = False
-    Interval = 10
+    Interval = 100
     OnTimer = TimerScreenshotTimer
     Left = 8
   end

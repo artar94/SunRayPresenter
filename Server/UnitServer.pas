@@ -206,6 +206,7 @@ begin
   for i:=0 to ServerSocket.Socket.ActiveConnections - 1 do
     for j:=0 to TileCount - 1 do
       if j in TileUpdateIndex then begin
+        ZeroMemory(@buf, 65536);
         CurrentStream:= TMemoryStream.Create;
         SBmpArray[j].SaveToStream(CurrentStream);
         CurrentStream.Seek(0, soFromBeginning);
@@ -214,6 +215,7 @@ begin
         buf[49206]:=j;
         ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536);
         CurrentStream.Free;
+        Sleep(10);
       end;
 
   //BitBlt(ServerForm.Canvas.Handle, 0,0,ServerForm.ClientWidth,ServerForm.ClientHeight,
