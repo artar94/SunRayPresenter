@@ -21,6 +21,8 @@ type
     ClientSocket: TClientSocket;
     procedure ClientSocketRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure FormCreate(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
   private
     procedure Init;
     procedure Paint(index: byte);
@@ -98,6 +100,16 @@ begin
          ClientForm.ClientWidth, ClientForm.ClientHeight,
          CBmp.Canvas.Handle,
          0,0, SRCCOPY);
+end;
+
+procedure TClientForm.Button1Click(Sender: TObject);
+begin
+  Application.Terminate;
+end;
+
+procedure TClientForm.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  if key = #27 then Close;
 end;
 
 end.
