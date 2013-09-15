@@ -22,6 +22,12 @@ type
     index: Cardinal;
   end;
 
+  TPixel = record
+    R,G,B: byte;
+  end;
+  TPixelArray  = array[0..$effffff] of TPixel;
+  PTPixelArray = ^TPixelArray;
+
   TBmpArray = array [0..TileCount - 1] of TBitmap;
 
   TTileUpdateIndex = set of 0..TileCount - 1;
@@ -64,7 +70,7 @@ begin
 
   for i:= 0 to TileCount - 1 do begin
     SBmpArray[i]:= TBitmap.Create;
-    SBmpArray[i].PixelFormat:= pf32bit;
+    SBmpArray[i].PixelFormat:= pf24bit;
     SBmpArray[i].Width:= TileSize;
     SBmpArray[i].Height:= TileSize;
     SBmpArray[i].Canvas.FillRect(Rect(0, 0, TileSize - 1, TileSize - 1));
@@ -75,7 +81,7 @@ begin
   SBmp:= TBitmap.Create;
   SBmp.Width:= SunWidth;
   SBmp.Height:= SunHeight;
-  SBmp.PixelFormat:= pf32bit;
+  SBmp.PixelFormat:= pf24bit;
 
   STileBmp:= TBitmap.Create;
   STileBmp.Width:= TileSize;
@@ -130,8 +136,9 @@ end;
 function TServerForm.EqualsBitmap(index: integer): boolean;
 var
   i,j: integer;
-  PT, PB : PIntegerArray;
+  PT, PB : PTPixelArray;
   Line, Col: integer;
+  PixelT, PixelB: TPixel;
 begin
   Result:= false;
   Line:=  (index div TileCountColumn) * TileSize;
@@ -139,8 +146,11 @@ begin
   for i:= 0 to TileSize - 1 do begin
     PT:= SBmpArray[index].ScanLine[i];
     PB:= SBmp.ScanLine[Line + i];
-    for j:= 0 to TileSize - 1 do
-      if PT^[j] <> PB^[Col + j] then Exit;
+    for j:= 0 to TileSize - 1 do begin
+      PixelT:= PT^[j];
+      PixelB:= PB^[Col + j];
+      if (PixelT.R <> PixelB.R) or (PixelT.G <> PixelB.G) or (PixelT.B <> PixelB.B) then Exit;
+    end;
   end;
   Result:= true;
 end;
