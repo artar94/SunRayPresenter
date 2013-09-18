@@ -1,10 +1,9 @@
 object ClientForm: TClientForm
   Left = 177
   Top = 146
-  BorderStyle = bsNone
+  Width = 461
+  Height = 437
   Caption = 'ClientForm'
-  ClientHeight = 398
-  ClientWidth = 445
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,8 +12,8 @@ object ClientForm: TClientForm
   Font.Style = []
   KeyPreview = True
   OldCreateOrder = False
-  WindowState = wsMaximized
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
   PixelsPerInch = 96
   TextHeight = 13
