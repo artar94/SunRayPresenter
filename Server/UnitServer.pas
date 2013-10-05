@@ -216,7 +216,10 @@ begin
         Size := CurrentStream.Size;
         CurrentStream.ReadBuffer(buf[0],Size);
         buf[49206]:=j;
-        ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536);
+
+        while ServerSocket.Socket.Connections[i].SendBuf(buf[0],65536)<>65536 do begin
+
+        end;
         CurrentStream.Free;
         inc(count);
         //if count=8 then Exit;
